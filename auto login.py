@@ -1,5 +1,5 @@
 from selenium.webdriver import Chrome
-from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -11,8 +11,7 @@ import time
 
 mapelDict = {}
 mapelPerDayList = []
-upperBoundTimeList = [] 
-lowerBoundTimeList =  []
+TimeList = [] 
 isAbsenTime = bool
 sameDayMapel = 0
 totalAbsenHariIni = 0
@@ -23,7 +22,7 @@ formatted_time = current_date.strftime('%A - %H:%M')
 formatted_day = current_date.strftime("%A")
 
 def absen():
-    options = webdriver.ChromeOptions()
+    options = Options()
     options.page_load_strategy = "eager"
     options.add_argument("--headless")
 
@@ -33,8 +32,7 @@ def absen():
 
     isAbsenTime = False
 
-    lowerBoundTimeList = []
-    upperBoundTimeList = []
+    TimeList = []
     mapelPerDayList = []
     try:
         wait.until(EC.element_to_be_clickable((By.LINK_TEXT, "Masuk"))).click()
@@ -52,8 +50,7 @@ def absen():
                 child_element = element.find_element(By.CSS_SELECTOR, ".pricing-save")
                 child_value = child_element.text
 
-                lowerBoundTimeList.append(child_value[8:-6])
-                upperBoundTimeList.append(child_value[-5:])
+                TimeList.append(child_value[8:])
                 mapelPerDayList.append(child_value[:-14])
                 sliced_value = child_value[:-6]
 
@@ -65,25 +62,28 @@ def absen():
 
         if isAbsenTime == True:
             wait.until(EC.element_to_be_clickable((By.XPATH, "/html/body/div[1]/div/div[2]/div/div[5]/div/center/button"))).click()
+            driver.implicitly_wait(3)
         else:
             print("Belum Saatnya untuk Absen")   
         
-        return mapelPerDayList, upperBoundTimeList, lowerBoundTimeList, isAbsenTime
+        return mapelPerDayList, TimeList, isAbsenTime
     
     except Exception as e:
         print(f"Terjadi sebuah kesalahan: \n{e}")
     finally:
         driver.quit()
 
-mapelPerDayList, upperBoundTimeList, lowerBoundTimeList, isAbsenTime = absen()
-
-class KeteranganMatpel:
-    def __init__(self, mapelLenght, mapelStartTime, mapelEndTime):
-        self.mapelLenght = mapelLenght,
-        self.mapelStartTime = mapelStartTime,
-        self.mapelEndTime = mapelEndTime
-
+if __name__ == '__main__':
+    mapelPerDayList, TimeList, isAbsenTime = absen()
 
 for i in range(len(mapelPerDayList)):
     sameDayMapel = mapelPerDayList.count(mapelPerDayList[i])
-    # mapelDict[mapelPerDayList[i]] = KeteranganMatpel(sameDayMapel, )
+    mapelDict[mapelPerDayList[i]] = [sameDayMapel, TimeList]
+
+def parseTime(day, *args):
+    parsedArgs = args
+
+if formatted_day in mapelDict:
+    mapelCount = mapelDict[formatted_day]
+else:
+    time.sleep(86400)
