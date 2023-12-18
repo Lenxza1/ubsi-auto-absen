@@ -9,17 +9,20 @@ import locale
 import datetime
 import time
 
+mapelDict = {}
 mapelPerDayList = []
 upperBoundTimeList = [] 
 lowerBoundTimeList =  []
-isLoginTime = bool
+isAbsenTime = bool
 sameDayMapel = 0
+totalAbsenHariIni = 0
 
-def login():
-    locale.setlocale(locale.LC_TIME, 'id_ID.UTF-8')
-    current_date = datetime.datetime.now()
-    formatted_time = current_date.strftime('%A - %H:%M')
+locale.setlocale(locale.LC_TIME, 'id_ID.UTF-8')
+current_date = datetime.datetime.now()
+formatted_time = current_date.strftime('%A - %H:%M')
+formatted_day = current_date.strftime("%A")
 
+def absen():
     options = webdriver.ChromeOptions()
     options.page_load_strategy = "eager"
     options.add_argument("--headless")
@@ -28,7 +31,7 @@ def login():
     driver.get("http://elearning.bsi.ac.id")
     wait = WebDriverWait(driver, 10)
 
-    isLoginTime = False
+    isAbsenTime = False
 
     lowerBoundTimeList = []
     upperBoundTimeList = []
@@ -56,33 +59,31 @@ def login():
 
                 if sliced_value == formatted_time:
                     element.find_element(By.CSS_SELECTOR, ".pricing-footer").find_element(By.LINK_TEXT, "Masuk Kelas").click()
-                    isLoginTime = True
+                    isAbsenTime = True
             except StaleElementReferenceException:
                 break     
-        if isLoginTime == True:
+
+        if isAbsenTime == True:
             wait.until(EC.element_to_be_clickable((By.XPATH, "/html/body/div[1]/div/div[2]/div/div[5]/div/center/button"))).click()
         else:
-            print("Belum Saatnya untuk login")   
+            print("Belum Saatnya untuk Absen")   
         
-        return mapelPerDayList, upperBoundTimeList, lowerBoundTimeList, isLoginTime
+        return mapelPerDayList, upperBoundTimeList, lowerBoundTimeList, isAbsenTime
+    
     except Exception as e:
         print(f"Terjadi sebuah kesalahan: \n{e}")
     finally:
         driver.quit()
 
-mapelPerDayList, upperBoundTimeList, lowerBoundTimeList, isLoginTime = login()
+mapelPerDayList, upperBoundTimeList, lowerBoundTimeList, isAbsenTime = absen()
 
-initialDay = mapelPerDayList[0]
+class KeteranganMatpel:
+    def __init__(self, mapelLenght, mapelStartTime, mapelEndTime):
+        self.mapelLenght = mapelLenght,
+        self.mapelStartTime = mapelStartTime,
+        self.mapelEndTime = mapelEndTime
+
 
 for i in range(len(mapelPerDayList)):
-    print(f"Mapel Per Day 1 {mapelPerDayList[i + 1]}")
-    if initialDay == mapelPerDayList[i + 1]:
-        sameDayMapel =+ 1
-    if mapelPerDayList[i + 1] == len(mapelPerDayList):
-        initialDay = mapelPerDayList[i + 1]
-    print(f"initial Day {str(initialDay)}")
-    print(f"Mapel Per Day 2 {mapelPerDayList[i + 1]}")
-    print(f"Same Day Mapel {str(sameDayMapel)}")
-
-while isLoginTime == False:
-    time.sleep(1800)
+    sameDayMapel = mapelPerDayList.count(mapelPerDayList[i])
+    # mapelDict[mapelPerDayList[i]] = KeteranganMatpel(sameDayMapel, )
