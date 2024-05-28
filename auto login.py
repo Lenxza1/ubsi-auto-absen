@@ -6,21 +6,21 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import StaleElementReferenceException
 from user import user
 import locale
-import datetime
+from datetime import datetime
+import re
 import time
 
-mapelDetail = {} 
+mapelDetail = []
 isAbsenTime = bool
 totalAbsenHariIni = 0
 
 locale.setlocale(locale.LC_TIME, 'id_ID.UTF-8')
-current_date = datetime.datetime.now()
+current_date = datetime.now()
 formatted_time = current_date.strftime('%A - %H:%M')
 today = current_date.strftime("%A")
 
 def absen():
     options = Options()
-    options.page_load_strategy = "eager"
     # options.add_argument('--headless=new')
 
     driver = Chrome(options= options)
@@ -29,15 +29,21 @@ def absen():
 
     isAbsenTime = False
 
-    mapelDetail = {}
+    sliced_value = []
     try:
         wait.until(EC.element_to_be_clickable((By.LINK_TEXT, "Masuk"))).click()
         wait.until(EC.presence_of_element_located((By.ID, "username"))).send_keys(user[1].nim)
         wait.until(EC.presence_of_element_located((By.ID, "password"))).send_keys(user[1].password)
-        wait.until(EC.element_to_be_clickable((By.XPATH, "/html/body/div/div/div/div[2]/div/div[2]/form/div[3]/button"))).click()
+        captcha_question = wait.until(EC.presence_of_element_located((By.ID, "captcha_question")))
+        captcha_question = captcha_question.text
+        match = re.search(r'(\d+)\s*(\+)\s*(\d+)', captcha_question)
+        captcha_answer = int(match.group(1)) + int(match.group(3))
+        wait.until(EC.presence_of_element_located((By.ID, "captcha_answer"))).send_keys(captcha_answer)
+        
+        wait.until(EC.element_to_be_clickable((By.XPATH, "//button[@type='submit']"))).click()
 
         wait.until(EC.element_to_be_clickable((By.ID, "pin-sidebar"))).click()
-        wait.until(EC.element_to_be_clickable((By.XPATH, "//*[@id=\"sidebar\"]/div/div[1]/div/ul/li[4]"))).click()
+        wait.until(EC.element_to_be_clickable((By.XPATH, "//span[text()='Jadwal']"))).click()
         wait.until(EC.element_to_be_clickable((By.LINK_TEXT, "Jadwal Kuliah"))).click()
 
         elements = wait.until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".pricing-plan")))
@@ -46,15 +52,9 @@ def absen():
                 child_element = element.find_element(By.CSS_SELECTOR, ".pricing-save")
                 child_value = child_element.text
 
-                sliced_value = child_value[:-6]
-                
-                if mapelDetail.get(child_value[:-14]) == None:
-                    mapelDetail[child_value[:-14]] = child_value[-11:]
-                else:
-                    temp = mapelDetail[child_value[:-14]]
-                    mapelDetail[child_value[:-14]] = [temp, child_value[-11:]]
+                sliced_value.append(child_value[:-6])
 
-                if sliced_value == 'Kamis - 07:30':
+                if sliced_value == formatted_time:
                     element.find_element(By.CSS_SELECTOR, ".pricing-footer").find_element(By.LINK_TEXT, "Masuk Kelas").click()
                     isAbsenTime = True
             except StaleElementReferenceException:
@@ -69,7 +69,7 @@ def absen():
             with open('logs.txt', 'a') as logs:
                 logs.write(f'{sliced_value}\n Belum saatnya untuk absen \n')
         
-        return isAbsenTime, mapelDetail
+        return sliced_value
     
     except Exception as e:
         print(f"Terjadi sebuah kesalahan: \n{e}")
@@ -78,22 +78,16 @@ def absen():
     finally:
         driver.quit()
 
-if __name__ == '__main__':
-    isAbsenTime, mapelDetail = absen()
+def SleepUntil(targets):
+    deltas = []
+    for i in range(len(targets)):
+        target = datetime.strptime((targets[i]).title(), '%A - %H:%M')
+        deltas.append((target - datetime.strptime(formatted_time, '%A - %H:%M')).total_seconds())
 
-if today in mapelDetail:
-    for mapel, timeList in mapelDetail.items():
-        if today == mapel:
-            if isinstance(timeList, list):
-                mapelLenght = len(timeList)
-            else: 
-                timeDetails = []
-                timeDetails.append(timeList)
-                mapelLenght = len(timeDetails)
-    while totalAbsenHariIni < mapelLenght:
-        totalAbsenHariIni += 1
-else:
-    time.sleep(86400)
+    deltas.sort()
+    for delta in deltas:
+        print(delta)
 
-def SleepUntil(target: list):
-    pass
+mapelDetail = absen()
+
+SleepUntil(mapelDetail)
